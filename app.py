@@ -17,38 +17,38 @@ st.markdown("Enter a stock ticker (e.g., **TATASTEEL.NS**, **RELIANCE.NS**, **AA
 with st.sidebar:
     st.header("⚙️ Configuration")
     load_dotenv()
-    default_key = os.getenv("GOOGLE_API_KEY") if os.getenv("GOOGLE_API_KEY") else ""
+    # Safe fetch for API Key
+    default_key = os.getenv("GOOGLE_API_KEY", "")
     api_key = st.text_input("Enter Google API Key", value=default_key, type="password")
 
 # 4. Input Box
 stock_ticker = st.text_input("Enter Stock Ticker:", value="TATASTEEL.NS")
 
-# --- TOOL DEFINITION (The Fix: Native CrewAI Way) ---
-class StockTools:
-    @tool("Get Stock Price")
-    def fetch_stock_price(ticker: str):
-        """
-        Useful for getting the live price of a stock. 
-        Input should be a ticker symbol like 'TATASTEEL.NS' or 'RELIANCE.NS'.
-        """
-        try:
-            ticker = ticker.strip()
-            stock = yf.Ticker(ticker)
-            info = stock.info
-            price = info.get('currentPrice') or info.get('regularMarketPrice') or info.get('previousClose')
-            if price:
-                return f"The live price of {ticker} is ₹{price}"
-            else:
-                return f"Error: Could not find price for {ticker}. Try adding '.NS' for Indian stocks."
-        except Exception as e:
-            return f"Error fetching price: {e}"
+# --- TOOL DEFINITION (The Simplest Fix) ---
+# Hum seedha function bana rahe hain, Class nahi.
+@tool
+def get_stock_price(ticker: str):
+    """
+    Useful to get the live stock price. Input: Ticker symbol (e.g., 'TATASTEEL.NS').
+    """
+    try:
+        ticker = ticker.strip()
+        stock = yf.Ticker(ticker)
+        info = stock.info
+        price = info.get('currentPrice') or info.get('regularMarketPrice') or info.get('previousClose')
+        if price:
+            return f"The live price of {ticker} is ₹{price}"
+        else:
+            return f"Error: Price not found for {ticker}. Try adding .NS for India."
+    except Exception as e:
+        return f"Error: {e}"
 
 # --- MAIN LOGIC ---
 if st.button("🚀 Analyze Stock"):
     if not api_key:
         st.error("Please enter your Google API Key in the sidebar!")
     else:
-        with st.spinner('🤖 AI Crew is researching the market... (This may take 30-60 seconds)'):
+        with st.spinner('🤖 AI Crew is researching...'):
             try:
                 # Setup Brain
                 llm = ChatGoogleGenerativeAI(
@@ -58,58 +58,48 @@ if st.button("🚀 Analyze Stock"):
                     google_api_key=api_key
                 )
 
-                # Define Agents
+                # Agents
                 researcher = Agent(
                     role='Senior Stock Market Researcher',
-                    goal='Find live stock prices and analyze trends',
-                    backstory="You are an expert analyst. You ALWAYS use the tool to find real data.",
+                    goal='Find live stock prices',
+                    backstory="Expert analyst who uses tools to find data.",
                     verbose=True,
                     llm=llm,
-                    # 👇 FIX: Correct way to pass the tool
-                    tools=[StockTools.fetch_stock_price]
+                    # 👇 FIX: Seedha tool ka naam list mein
+                    tools=[get_stock_price]
                 )
 
                 writer = Agent(
                     role='Financial Blog Writer',
-                    goal='Write a blog post with the LIVE PRICE included',
-                    backstory="You write engaging blogs in Hinglish. You must mention the exact price found by the researcher.",
+                    goal='Write a blog with LIVE PRICE',
+                    backstory="Writes engaging blogs in Hinglish.",
                     verbose=True,
                     llm=llm
                 )
 
-                # Define Tasks
+                # Tasks
                 task1 = Task(
-                    description=f"""
-                    1. Use the 'Get Stock Price' tool to find the LIVE price of '{stock_ticker}'.
-                    2. Analyze if it is a good time to buy based on general market trends.
-                    """,
-                    expected_output="A summary report with the exact LIVE price.",
+                    description=f"Find the LIVE price of '{stock_ticker}' using the tool.",
+                    expected_output="A report with the exact LIVE price.",
                     agent=researcher
                 )
 
                 task2 = Task(
-                    description=f"""
-                    Write a short Hinglish blog post titled '{stock_ticker} Update'.
-                    IMPORTANT: You MUST include the exact Live Price (₹) found by the researcher.
-                    Format the output nicely with Markdown (Headings, Bold text).
-                    """,
-                    expected_output="A blog post with the Real-Time Price mentioned.",
+                    description=f"Write a short Hinglish blog about '{stock_ticker}'. INCLUDE THE LIVE PRICE.",
+                    expected_output="A blog post with the price.",
                     agent=writer
                 )
 
-                # Create Crew
+                # Crew
                 my_crew = Crew(
                     agents=[researcher, writer],
                     tasks=[task1, task2],
                     process=Process.sequential
                 )
 
-                # Run!
                 result = my_crew.kickoff()
 
-                # Display Result
                 st.success("Analysis Complete! ✅")
-                st.markdown("---")
                 st.markdown(result)
             
             except Exception as e:

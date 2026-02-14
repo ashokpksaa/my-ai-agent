@@ -8,7 +8,6 @@ from crewai.tools import tool
 # --- 🚨 HARDCODED API KEY (Sirf Testing Ke Liye) ---
 MY_API_KEY = "AIzaSyAhcoN_nMYmg6VVIYV9pF4XVRmbiiMzuZ4"
 
-# Naye version ke liye hum dono environment variables set kar rahe hain
 os.environ["GOOGLE_API_KEY"] = MY_API_KEY
 os.environ["GEMINI_API_KEY"] = MY_API_KEY 
 
@@ -42,9 +41,9 @@ def get_stock_price(ticker: str):
 if st.button("🚀 Analyze Stock"):
     with st.spinner('🤖 AI Crew is researching... (Please wait 30-40 seconds)'):
         try:
-            # Setup Brain - Error ke hisaab se humne seedha 'api_key' parameter use kiya hai
+            # 👇 YAHAN BADLAV KIYA HAI: 'gemini-1.5-flash' jisme 1500 free requests/day hain!
             llm = ChatGoogleGenerativeAI(
-                model="gemini-flash-latest",
+                model="gemini-1.5-flash", 
                 verbose=True,
                 temperature=0.5,
                 api_key=MY_API_KEY 

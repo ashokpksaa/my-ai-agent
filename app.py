@@ -4,7 +4,6 @@ import yfinance as yf
 from crewai import Agent, Task, Crew, Process
 from langchain_google_genai import ChatGoogleGenerativeAI
 from crewai.tools import tool
-from dotenv import load_dotenv
 
 # 1. Page Config
 st.set_page_config(page_title="AI Financial Analyst", page_icon="📈")
@@ -13,23 +12,21 @@ st.set_page_config(page_title="AI Financial Analyst", page_icon="📈")
 st.title("🤖 AI Financial Analyst Agent")
 st.markdown("Enter a stock ticker (e.g., **TATASTEEL.NS**, **RELIANCE.NS**) and let the AI Crew analyze it.")
 
-# 3. SECURE API KEY HANDLING (No Hardcoding!)
-# Local testing ke liye .env se load karega, aur Streamlit cloud par Secrets se.
-load_dotenv()
-
+# 3. SECURE API KEY HANDLING 
 with st.sidebar:
     st.header("⚙️ Configuration")
-    st.write("🔒 API Key is securely managed.")
     
-    # Try getting the key securely
+    # Secrets se key lene ki koshish karega
     try:
         api_key = st.secrets["GOOGLE_API_KEY"]
+        st.success("✅ API Key Loaded Securely!")
     except:
-        api_key = os.environ.get("GOOGLE_API_KEY", "")
+        api_key = ""
+        st.warning("⚠️ Secret Key not found. Please enter below:")
     
-    # Agar key secret me nahi mili, to manually daalne ka option dega
+    # Agar secret me nahi hai, to manually daalne ka option
     if not api_key:
-        api_key = st.text_input("Enter New Google API Key manually:", type="password")
+        api_key = st.text_input("Enter Google API Key manually:", type="password")
 
 # LLM aur CrewAI ke liye environment set karna
 if api_key:
@@ -58,7 +55,7 @@ def get_stock_price(ticker: str):
 # --- MAIN LOGIC ---
 if st.button("🚀 Analyze Stock"):
     if not api_key:
-        st.error("❌ Please setup your API Key securely in Streamlit Secrets!")
+        st.error("❌ Please enter your API Key in the sidebar first!")
     else:
         with st.spinner('🤖 AI Crew is researching... (Please wait 30-40 seconds)'):
             try:
